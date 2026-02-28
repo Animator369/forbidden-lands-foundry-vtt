@@ -13,10 +13,15 @@
 	</div>
 
 	{{#if (eq roll.type "yz")}}
+		{{#if (and roll.options.isAttack roll.options.damageType)}}
+			<div class="attack-damage-type" title="{{localize 'ROLL.DAMAGE_TYPE'}}">
+				{{localize "ROLL.DAMAGE_TYPE"}}: {{damageType roll.options.damageType}}
+			</div>
+		{{/if}}
 		<h4 class="dice-total">
 			<span class="sword" title="{{localize 'DICE.SUCCESSES'}}">x</span>
-			<span class="special-number" title="{{localize 'DICE.SUCCESSES'}}">{{success}}</span>
-			{{#if (and roll.options.isAttack (gt success 0))}}
+			<span class="special-number" title="{{localize 'DICE.SUCCESSES'}}">{{roll.attackSuccess}}</span>
+			{{#if (and roll.options.isAttack (gt roll.attackSuccess 0))}}
 				&nbsp;|&nbsp;
 				<i class="fas fa-tint" title="{{localize 'DAMAGE'}}"></i>
 				<span class="special-number" title="{{localize 'DAMAGE'}}">{{roll.damage}}</span>
@@ -48,7 +53,11 @@
 	{{/if}}
 
 	<div class="dice-buttons">
-		{{#if (and pushable (or roll.isOwner user.isGM))}}
+		{{#if (and
+			pushable
+			(or roll.isOwner user.isGM)
+			(or (not roll.options.isAttack) (not roll.options.attackApplied))
+		)}}
 			<button class="fbl-button push" data-action="push">
 				{{localize "PUSH"}}
 			</button>
@@ -68,6 +77,27 @@
 			<button class="fbl-button table" data-action="prey">
 				{{localize "ROLL.FOUND_PREY"}}
 			</button>
+		{{/if}}
+
+		{{#if (and roll.options.isAttack (not roll.options.attackApplied))}}
+			{{#if (gt roll.attackSuccess 0)}}
+				<button class="fbl-button attack-action" data-action="apply-damage">
+					{{localize "ROLL.APPLY_DAMAGE"}}
+				</button>
+			{{/if}}
+			{{#unless roll.options.defenseUsed}}
+				<button class="fbl-button attack-action" data-action="defense-dodge">
+					{{localize "ROLL.DEFENSE_DODGE"}}
+				</button>
+				<button class="fbl-button attack-action" data-action="defense-parry">
+					{{localize "ROLL.DEFENSE_PARRY"}}
+				</button>
+			{{/unless}}
+			{{#unless roll.options.armorUsed}}
+				<button class="fbl-button attack-action" data-action="defense-armor">
+					{{localize "ROLL.DEFENSE_ARMOR"}}
+				</button>
+			{{/unless}}
 		{{/if}}
 	</div>
 </div>

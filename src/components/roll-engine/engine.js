@@ -472,6 +472,9 @@ export class FBLRollHandler extends FormApplication {
 	 * @returns {Object<any>} catch-all options object. Contains all non-dice related options.
 	 */
 	getRollOptions() {
+		const target = Array.from(game.user?.targets || [])[0] || null;
+		const attackCategory = this.gear?.category || null;
+		const attackAmmo = this.gear?.ammo || null;
 		const unlimitedPush = this.options.unlimitedPush;
 		// Strictly speaking, unlimited push means 'Infinity' pushes,
 		// however Infinity is finicky to serialize.
@@ -491,9 +494,14 @@ export class FBLRollHandler extends FormApplication {
 			attribute: this.base.name,
 			chance: this.spell.chance,
 			isAttack: this.isAttack,
+			attackCategory,
+			attackAmmo,
 			consumable: this.options.consumable,
 			damage: this.damage,
 			damageType: this.damageType,
+			targetTokenId: target?.id || null,
+			targetSceneId:
+				target?.scene?.id || target?.document?.parent?.id || canvas.scene?.id || null,
 			tokenId: this.options.tokenId,
 			sceneId: this.options.sceneId,
 			item: this.gear.name || this.gears.map((gear) => gear.name),
@@ -509,15 +517,48 @@ export class FBLRollHandler extends FormApplication {
 
 	async handleRollArrows() {
 		const isCharacter = this.options.actorType === "character";
-		const isRanged = this.gear.category === "ranged";
-		const hasArrows = this.gear.ammo === "arrows";
-		if (!(isCharacter && isRanged && hasArrows)) return;
+		if (!isCharacter) return;
+
+		// Primary check from current roll gear data.
+		const gearCategory = String(this.gear?.category || "").toLowerCase().trim();
+		const gearAmmo = String(this.gear?.ammo || "").toLowerCase().trim();
+		const isRangedByGear = gearCategory.includes("ranged");
+		const hasArrowsByGear = gearAmmo === "arrows";
+
+		// Fallback check from the source item to support all attack entry points.
+		let isRangedByItem = false;
+		let hasArrowsByItem = false;
 		const actor = this.constructor.getSpeaker({
 			actor: this.options.actorId,
 			scene: this.options.sceneId,
 			token: this.options.tokenId,
 		});
-		return setTimeout(() => actor.sheet.rollConsumable("arrows"), 500);
+		if (actor) {
+			const itemId = Array.isArray(this.options.itemId)
+				? this.options.itemId[0]
+				: this.options.itemId;
+			const item = itemId ? actor.items.get(itemId) : null;
+			const itemCategory = String(item?.system?.category || "")
+				.toLowerCase()
+				.trim();
+			const itemAmmo = String(item?.system?.ammo || "")
+				.toLowerCase()
+				.trim();
+			isRangedByItem = itemCategory.includes("ranged");
+			hasArrowsByItem = itemAmmo === "arrows";
+		}
+
+		const shouldRollArrows =
+			(isRangedByGear && hasArrowsByGear) ||
+			(!!this.options.isAttack && isRangedByItem && hasArrowsByItem);
+		if (!shouldRollArrows) return;
+
+		if (!actor?.sheet?.rollConsumable) return;
+		try {
+			await actor.sheet.rollConsumable("arrows");
+		} catch (error) {
+			console.warn("Forbidden Lands | Could not roll arrows resource die", error);
+		}
 	}
 
 	/**
@@ -797,17 +838,24 @@ export class FBLRoll extends YearZeroRoll {
 		return game.actors.get(this.options.actorId)?.isOwner || null;
 	}
 
+	get attackSuccess() {
+		if (!this.options?.isAttack) return this.successCount;
+		const defenseSuccess = Number(this.options?.defenseSuccess || 0);
+		const armorSuccess = Number(this.options?.armorSuccess || 0);
+		return Math.max(this.successCount - defenseSuccess - armorSuccess, 0);
+	}
+
 	get damage() {
 		if (
 			this.options?.isMonsterAttack &&
 			this.options?.attack?.system?.damageType === "fear"
 		) {
-			return this.successCount;
+			return this.attackSuccess;
 		}
 
 		const modifier = this.type === "spell" ? 0 : -1;
 		return (
-			(this.options.damage || 0) + Math.max(this.successCount + modifier, 0)
+			(this.options.damage || 0) + Math.max(this.attackSuccess + modifier, 0)
 		);
 	}
 
