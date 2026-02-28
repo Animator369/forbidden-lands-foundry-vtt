@@ -59,6 +59,7 @@ export class ForbiddenLandsItem extends Item {
 			value: this.bonus || 0,
 			category: this.category,
 			damage: this.damage || 0,
+			damageType: this.itemProperties.damageType || "non-typical",
 			isBroken: this.isBroken,
 			itemId: this.id,
 			label: this.name,

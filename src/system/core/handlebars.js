@@ -32,14 +32,24 @@ function registerHandlebarsHelpers() {
 		switch (type) {
 			case "blunt":
 				return game.i18n.localize("ATTACK.BLUNT");
+			case "empathy":
+				return game.i18n.localize("ATTACK.EMPATHY");
+			case "endurance":
+				return game.i18n.localize("ATTACK.ENDURANCE");
 			case "fear":
 				return game.i18n.localize("ATTACK.FEAR");
+			case "fire":
+				return game.i18n.localize("ATTACK.FIRE");
+			case "non-typical":
+				return game.i18n.localize("ATTACK.NON_TYPICAL");
 			case "slash":
 				return game.i18n.localize("ATTACK.SLASH");
 			case "stab":
 				return game.i18n.localize("ATTACK.STAB");
 			case "other":
 				return game.i18n.localize("ATTACK.OTHER");
+			case "wits":
+				return game.i18n.localize("ATTACK.WITS");
 		}
 	});
 	Handlebars.registerHelper("armorPart", (part) => {

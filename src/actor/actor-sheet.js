@@ -345,6 +345,26 @@ export class ForbiddenLandsActorSheet extends foundry.appv1.sheets.ActorSheet {
 		};
 	}
 
+	getDamageTypeOptions(itemId = undefined, actionName = undefined) {
+		const defaults = [{ value: "non-typical", label: "ATTACK.NON_TYPICAL" }];
+		if (!itemId) {
+			if (actionName === "unarmed")
+				return [{ value: "blunt", label: "ATTACK.BLUNT" }];
+			return defaults;
+		}
+
+		const item = this.actor.items.get(itemId);
+		if (!item || item.type !== "weapon") return defaults;
+
+		const features = item.system.features || {};
+		const options = [];
+		if (features.pointed) options.push({ value: "stab", label: "ATTACK.STAB" });
+		if (features.edged) options.push({ value: "slash", label: "ATTACK.SLASH" });
+		if (features.blunt) options.push({ value: "blunt", label: "ATTACK.BLUNT" });
+
+		return options.length ? options : defaults;
+	}
+
 	/************************************************/
 	/***               Actor Rolls                ***/
 	/************************************************/
@@ -369,6 +389,11 @@ export class ForbiddenLandsActorSheet extends foundry.appv1.sheets.ActorSheet {
 			),
 		};
 		if (actionName === "unarmed") options.damage = 1;
+		if (options.damage || data.gear?.damage) {
+			const damageTypeOptions = this.getDamageTypeOptions(itemId, actionName);
+			options.damageTypeOptions = damageTypeOptions;
+			options.damageType = damageTypeOptions[0]?.value || "non-typical";
+		}
 		return FBLRollHandler.createRoll(data, {
 			...options,
 			gears: this.getGears(),
@@ -466,6 +491,11 @@ export class ForbiddenLandsActorSheet extends foundry.appv1.sheets.ActorSheet {
 				data.gear.itemId,
 			),
 		};
+		if (data.gear?.damage) {
+			const damageTypeOptions = this.getDamageTypeOptions(itemId);
+			options.damageTypeOptions = damageTypeOptions;
+			options.damageType = damageTypeOptions[0]?.value || "non-typical";
+		}
 		return FBLRollHandler.createRoll(data, {
 			...options,
 			gears: this.getGears(),

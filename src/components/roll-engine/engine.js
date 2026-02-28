@@ -28,6 +28,7 @@ export class FBLRollHandler extends FormApplication {
 		this.skill = skill;
 		this.gear = gear;
 		this.damage = options.damage || gear.damage;
+		this.damageType = options.damageType || gear.damageType || "non-typical";
 		this.artifact = gear?.artifactDie;
 		this.gears = options.gears || [];
 		this.modifier =
@@ -132,6 +133,8 @@ export class FBLRollHandler extends FormApplication {
 			powerLevel: this.powerLevel,
 			spell: this.spell,
 			options,
+			damageType: this.damageType,
+			damageTypeOptions: this.options.damageTypeOptions || [],
 		};
 	}
 
@@ -277,7 +280,10 @@ export class FBLRollHandler extends FormApplication {
 	 * @returns true
 	 */
 	_validateForm(event, formData) {
-		const isEmpty = Object.values(formData).every((value) => !value);
+		const rollValues = Object.entries(formData)
+			.filter(([key]) => key !== "damageType")
+			.map(([_, value]) => value);
+		const isEmpty = rollValues.every((value) => !value);
 		const invalidArtifactField = !this.constructor.isValidArtifact(
 			formData.artifact,
 		);
@@ -329,8 +335,10 @@ export class FBLRollHandler extends FormApplication {
 		gear,
 		artifact,
 		modifier,
+		damageType,
 		...modifierItems
 	}) {
+		this.damageType = damageType || this.damageType;
 		// Handle optional gear
 		if (Object.values(modifierItems).some((item) => item)) {
 			const checkedItems = Object.entries(modifierItems)
@@ -485,6 +493,7 @@ export class FBLRollHandler extends FormApplication {
 			isAttack: this.isAttack,
 			consumable: this.options.consumable,
 			damage: this.damage,
+			damageType: this.damageType,
 			tokenId: this.options.tokenId,
 			sceneId: this.options.sceneId,
 			item: this.gear.name || this.gears.map((gear) => gear.name),

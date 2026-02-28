@@ -57,6 +57,14 @@
 					value="{{modifier}}"
 				/>
 			</div>
+			{{#if damageTypeOptions.length}}
+				<div class="final-modifier">
+					<label for="damageType">{{localize "ROLL.DAMAGE_TYPE"}}:</label>
+					<select id="damageType" name="damageType">
+						{{selectOptions damageTypeOptions selected=damageType localize=true}}
+					</select>
+				</div>
+			{{/if}}
 		</div>
 	</div>
 	<div class="container form-actions">
