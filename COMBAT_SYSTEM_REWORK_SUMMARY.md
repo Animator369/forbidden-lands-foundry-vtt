@@ -1,133 +1,133 @@
 # Combat System Rework Summary
 
-## 1) Добавленные фичи (простое описание)
+## 1) Added Features (Simple Overview)
 
-- В окно броска атаки добавлен выбор типа урона (`Stab`, `Slash`, `Blunt`, `Fire`, `Wits`, `Empathy`, `Endurance`, `Non-typical`) с сохранением выбора в данных броска.
-- Тип урона добавлен в отображение результата атаки в чате.
-- В чат-карту атаки добавлены кнопки действий по цели: `Apply Damage`, `Dodge`, `Parry`, `Armor`.
-- Добавлена логика пересчета успехов атаки после защитных бросков (`dodge`, `parry`, `armor`), включая поддержку форсирования защитных бросков.
-- Добавлено применение урона по характеристике в зависимости от типа урона:
+- Added a damage type selector to the attack roll dialog (`Stab`, `Slash`, `Blunt`, `Fire`, `Wits`, `Empathy`, `Endurance`, `Non-typical`) and persisted the selected value in roll data.
+- Added damage type display to attack results in chat.
+- Added target action buttons to the attack chat card: `Apply Damage`, `Dodge`, `Parry`, `Armor`.
+- Added attack success recalculation after defensive rolls (`dodge`, `parry`, `armor`), including support for pushing defensive rolls.
+- Added damage application by attribute based on damage type:
 - `Stab/Slash/Blunt/Non-typical` -> `Strength`
 - `Wits` -> `Wits`
 - `Empathy` -> `Empathy`
 - `Endurance` -> `Agility`
-- Добавлено правило: если после пересчета успехов атаки стало `0`, кнопка `Apply Damage` скрывается и урон не наносится.
-- Добавлено правило: после нажатия `Apply Damage` скрываются все боевые кнопки, включая `Push`.
-- Добавлена проверка владельца цели: боевые кнопки доступны только пользователю с правами `owner` на цель.
-- Добавлены ограничения на парирование:
-- дальнюю атаку можно парировать только при наличии экипированного щита у цели;
-- парирование выполняется только экипированным melee-оружием с фичей `parrying`, иначе действие блокируется.
-- Для атаки дальним оружием с `ammo = arrows` добавлен автоматический бросок ресурса стрел.
-- Добавлена обработка пробоев брони: если после блока урон остался, провалы armor-броска уменьшают броню (сначала body, потом head), монстрам броня не уменьшается.
-- Расширена система модификаторов предметов:
-- в значения модификаторов для урона добавлена поддержка `*` и `/` (например `*0`, `/2` с округлением вверх);
-- в список доступных целей модификаторов добавлены все типы урона (`Stab`, `Slash`, `Blunt`, `Fire`, `Wits`, `Empathy`, `Endurance`, `Non-typical`).
-- Добавлены контекстные модификаторы брони по параметрам атаки (тип урона, ranged, arrows) через существующую систему roll modifiers.
-- Добавлен вызов травматических таблиц при падении характеристики в `0` после нанесения урона:
-- при падении `Strength` в `0`: таблица по типу урона (`Blunt/Slash/Stab`);
-- при падении `Wits` в `0`: таблица `Horror Trauma`;
-- при падении `Empathy` или `Agility` в `0`: таблицы не вызываются.
-- Все новые UI-тексты и предупреждения добавлены через i18n (`lang/*.json`), без хардкода в интерфейсе.
+- Added a rule: if recalculated attack successes become `0`, the `Apply Damage` button is hidden and no damage is applied.
+- Added a rule: after pressing `Apply Damage`, all combat buttons are hidden, including `Push`.
+- Added target ownership checks: combat buttons are only available to users with `owner` permission on the target.
+- Added parry restrictions:
+- ranged attacks can only be parried if the target has an equipped shield;
+- parry is only allowed using an equipped melee weapon with the `parrying` feature, otherwise it is blocked.
+- Added automatic arrows resource-die roll for ranged weapon attacks with `ammo = arrows`.
+- Added armor degradation handling: if damage remains after blocking, armor-roll failures reduce armor (body first, then head); monster armor is not reduced.
+- Extended the item modifier system:
+- added support for `*` and `/` in damage modifiers (for example `*0`, `/2` with rounding up);
+- added all damage types as available modifier targets (`Stab`, `Slash`, `Blunt`, `Fire`, `Wits`, `Empathy`, `Endurance`, `Non-typical`).
+- Added context-based armor modifiers by attack parameters (damage type, ranged, arrows) through the existing roll-modifier system.
+- Added trauma table calls when an attribute drops to `0` after damage:
+- when `Strength` drops to `0`: table by damage type (`Blunt/Slash/Stab`);
+- when `Wits` drops to `0`: `Horror Trauma` table;
+- when `Empathy` or `Agility` drops to `0`: no table is called.
+- All new UI labels and warnings were added through i18n (`lang/*.json`) without hardcoded strings.
 
-## 2) Ошибки, выявленные в тестировании, и их устранение
+## 2) Issues Found During Testing and Fixes
 
-- Проблема: после форсирования `dodge/parry/armor` успехи не пересчитывались в исходной атаке.
-- Причина: не было синхронизации форсированного защитного броска обратно в сообщение атаки.
-- Исправление: добавлена связка `linkedAttackMessageId/linkedDefenseType` и синхронизация в состояние атаки после push.
+- Issue: after pushing `dodge/parry/armor`, successes were not recalculated in the original attack.
+- Root cause: no synchronization from the pushed defense roll back to the attack message.
+- Fix: added `linkedAttackMessageId/linkedDefenseType` linkage and attack-state synchronization after push.
 
-- Проблема: при `attackSuccess = 0` кнопка `Apply Damage` оставалась рабочей и мог наноситься 1 урон.
-- Причина: отсутствовала жесткая проверка перед применением урона.
-- Исправление: добавлена защита в логике применения урона и условный рендер кнопки только при `attackSuccess > 0`.
+- Issue: with `attackSuccess = 0`, the `Apply Damage` button was still active and could apply 1 damage.
+- Root cause: missing hard validation before applying damage.
+- Fix: added a hard guard in damage logic and conditional button rendering only for `attackSuccess > 0`.
 
-- Проблема: после нанесения урона часть кнопок продолжала отображаться.
-- Причина: рендер кнопок не учитывал общий флаг завершения атаки.
-- Исправление: введен флаг `attackApplied`, по нему скрываются все attack-action кнопки и `Push`.
+- Issue: some buttons stayed visible after damage was applied.
+- Root cause: button rendering did not account for a global attack-complete flag.
+- Fix: introduced `attackApplied` flag; all attack-action buttons and `Push` are hidden when set.
 
-- Проблема: цель, выбранная стандартным таргетом Foundry (`T`), иногда не определялась.
-- Причина: цель бралась только из текущего состояния пользователя и не фиксировалась в самом броске.
-- Исправление: `targetTokenId/targetSceneId` сохраняются в roll options/flags и используются для последующих действий.
+- Issue: target selected with standard Foundry targeting (`T`) was sometimes not detected.
+- Root cause: target was only read from current user state and not persisted in the roll itself.
+- Fix: `targetTokenId/targetSceneId` are now saved in roll options/flags and reused for subsequent actions.
 
-- Проблема: игрок не мог обновить сообщение атаки мастера после `dodge/parry/armor` (нет прав на update chat message).
-- Причина: прямое обновление сообщения без прав владельца.
-- Исправление: добавлен GM-proxy через `game.socket` (`updateAttackState`) с применением состояния активным GM.
+- Issue: players could not update a GM-authored attack message after `dodge/parry/armor` (no chat message update rights).
+- Root cause: direct message update without ownership rights.
+- Fix: added GM proxy flow through `game.socket` (`updateAttackState`) with state application by active GM.
 
-- Проблема: запрет парирования дальних атак работал нестабильно.
-- Причина: строгая проверка категории на точное значение.
-- Исправление: проверка ranged сделана устойчивой (по сохраненной категории атаки и по item fallback).
+- Issue: ranged parry restriction worked inconsistently.
+- Root cause: strict category checks against exact values.
+- Fix: made ranged checks robust (using stored attack category with item fallback).
 
-- Проблема: авто-бросок стрел не срабатывал в ряде сценариев атаки.
-- Причина: недостаточно надежное определение ranged+arrows в отдельных путях создания броска.
-- Исправление: расширен fallback по item в `handleRollArrows`, добавлено сохранение attack category/ammo в options.
+- Issue: automatic arrows roll did not trigger in some attack scenarios.
+- Root cause: ranged+arrows detection was not robust across all roll creation paths.
+- Fix: expanded item fallback in `handleRollArrows`, added persistent `attackCategory/attackAmmo` in options.
 
-- Проблема: нельзя было задать модификаторы урона вида `*0` или `/2` для иммунитетов/ослаблений.
-- Причина: старая логика учитывала только числовые `+/-` модификаторы.
-- Исправление: в расчете нанесения урона добавлен отдельный парсер и исполнитель выражений `+/-/*//` с `ceil` для деления/дробей.
+- Issue: it was not possible to define damage modifiers like `*0` or `/2` for immunity/resistance behavior.
+- Root cause: old logic only supported numeric `+/-` modifiers.
+- Fix: added a dedicated parser/executor for `+/-/*//` expressions with `ceil` behavior for division/fractions.
 
-- Проблема: в UI модификаторов нельзя было выбрать типы урона.
-- Причина: список селекта не содержал `ATTACK.*`.
-- Исправление: добавлен отдельный optgroup типов урона в компонент модификаторов.
+- Issue: damage types were not selectable in the modifier UI.
+- Root cause: select options did not include `ATTACK.*`.
+- Fix: added a dedicated damage-type optgroup in the modifiers component.
 
-- Проблема: бросок таблицы травм не срабатывал, если внешняя функция `rollOnTable` недоступна.
-- Причина: зависимость от внешнего макроса/глобальной функции.
-- Исправление: добавлен fallback на прямой `RollTable.draw({ displayChat: true })`.
+- Issue: trauma table roll failed when external `rollOnTable` was unavailable.
+- Root cause: dependency on external macro/global function only.
+- Fix: added fallback to direct `RollTable.draw({ displayChat: true })`.
 
-- Проблема: логика травм для `non-typical/fire` изначально вызывала таблицу blunt по умолчанию.
-- Причина: дефолтный возврат таблицы blunt для всех прочих типов.
-- Исправление: таблицы для Strength вызываются только для `blunt/slash/stab`; для прочих типов не вызываются.
+- Issue: trauma logic for `non-typical/fire` initially defaulted to blunt table.
+- Root cause: blunt table was returned as default for all unknown types.
+- Fix: strength trauma tables are called only for `blunt/slash/stab`; no table for other types.
 
-## 3) Короткое техническое описание реализации фич
+## 3) Short Technical Implementation Notes
 
-- Damage Type в атаке:
-- Добавлены `damageTypeOptions` и `damageType` в roll dialog flow.
-- Выбранный тип урона передается в `roll.options` и сериализуется в chat roll.
+- Damage Type in attacks:
+- Added `damageTypeOptions` and `damageType` to the roll dialog flow.
+- Selected damage type is written into `roll.options` and serialized into chat rolls.
 
-- Показ типа урона в чате:
-- В `templates/components/roll-engine/roll.hbs` добавлен блок `attack-damage-type`.
-- Локализация выполняется через helper `damageType` и ключи `ATTACK.*`.
+- Damage type display in chat:
+- Added `attack-damage-type` block in `templates/components/roll-engine/roll.hbs`.
+- Localization is handled via `damageType` helper and `ATTACK.*` keys.
 
-- Chat action-кнопки атаки:
-- В `roll.hbs` добавлены кнопки `apply-damage`, `defense-dodge`, `defense-parry`, `defense-armor`.
-- В `src/system/core/hooks.js` обработчик `renderChatMessageHTML` подписывает их на действия.
+- Attack chat action buttons:
+- Added `apply-damage`, `defense-dodge`, `defense-parry`, `defense-armor` in `roll.hbs`.
+- `renderChatMessageHTML` in `src/system/core/hooks.js` binds action handlers.
 
-- Пересчет атаки после защиты:
-- В состоянии атаки хранятся `defenseSuccess`, `armorSuccess`, `armorFailure`, флаги использования.
-- Итоговые успехи/урон считаются через геттеры roll (`attackSuccess`, `damage`), учитывая защитные модификаторы.
-- Для форсирования добавлена синхронизация связанного защитного броска обратно в attack message.
+- Attack recalculation after defense:
+- Attack state stores `defenseSuccess`, `armorSuccess`, `armorFailure`, and usage flags.
+- Final successes/damage are computed through roll getters (`attackSuccess`, `damage`) with defensive modifiers.
+- Push flow synchronizes linked defense rolls back into the original attack message.
 
-- Ограничения видимости и прав:
-- Перед показом/использованием кнопок проверяется `isOwner` цели у текущего пользователя.
-- Для кросс-правового сценария добавлен сокет-канал `updateAttackState`, который применяет активный GM.
+- Visibility and permission constraints:
+- Buttons are shown/usable only if current user is owner of the target.
+- Added `updateAttackState` socket channel for cross-permission updates via active GM.
 
-- Apply Damage и завершение атаки:
-- При применении урона обновляется нужная характеристика цели.
-- После успешного применения проставляется `attackApplied=true`, что скрывает все action-кнопки и `Push`.
+- Apply Damage and attack finalization:
+- Applies damage to the mapped target attribute.
+- Sets `attackApplied=true` after success, hiding all action buttons and `Push`.
 
-- Маппинг урона на характеристики:
-- В helper `getDamageAttribute` реализовано отображение `damageType -> attribute`.
+- Damage type to attribute mapping:
+- Implemented in helper `getDamageAttribute` as `damageType -> attribute`.
 
 - Dodge/Parry/Armor:
-- `Dodge` и `Parry` вызываются через `actor.sheet.rollAction(...)`.
-- `Parry` требует валидный источник: melee weapon с `parrying`; для ranged-атаки дополнительно требуется shield.
-- `Armor` вызывает `actor.sheet.rollArmor()` (или monster armor roll), успехи/провалы учитываются в состоянии атаки.
+- `Dodge` and `Parry` are executed through `actor.sheet.rollAction(...)`.
+- `Parry` requires a valid source: melee weapon with `parrying`; ranged parry additionally requires shield.
+- `Armor` uses `actor.sheet.rollArmor()` (or monster armor roll), and its successes/failures are propagated to attack state.
 
-- Пробой брони:
-- При наличии остаточного урона и armor-провалов снижается `system.bonus.value` у надетой брони в порядке body -> head.
-- Для монстров деградация брони отключена.
+- Armor degradation:
+- With remaining damage and armor failures, equipped armor `system.bonus.value` is reduced in order body -> head.
+- Monster armor degradation is disabled.
 
-- Травматические таблицы:
-- После нанесения урона проверяется переход характеристики `>0 -> 0`.
-- Для `Strength` выбирается таблица по типу урона (`Blunt/Slash/Stab`), для `Wits` вызывается `Horror Trauma`.
-- Запуск таблицы: сначала попытка `globalThis.rollOnTable`, затем macro `rollOnTable`, затем fallback `game.tables.getName(...).draw`.
+- Trauma tables:
+- After damage, checks for attribute transition `>0 -> 0`.
+- For `Strength`, picks trauma table by damage type (`Blunt/Slash/Stab`); for `Wits`, uses `Horror Trauma`.
+- Table execution order: `globalThis.rollOnTable` -> macro `rollOnTable` -> fallback `game.tables.getName(...).draw`.
 
-- Авто-бросок стрел:
-- В `handleRollArrows` проверяется, что атака character+`ranged`+`arrows`.
-- Введен fallback по item source (`itemId`) и сохранение `attackCategory/attackAmmo` в options для стабильного определения.
+- Automatic arrows roll:
+- `handleRollArrows` validates character + `ranged` + `arrows`.
+- Includes item-source fallback (`itemId`) and persists `attackCategory/attackAmmo` for stable detection.
 
-- UI и стили:
-- Для чата добавлены стили вертикального стека кнопок и компактного отображения damage type.
-- Размер кнопок и текста дополнительно уменьшен примерно на 20% по итогам тестирования.
+- UI and styling:
+- Added vertical button stack styles and compact damage-type label in chat.
+- Reduced button/text sizes by about 20% based on testing feedback.
 
-- Расширенные roll modifiers для урона и брони:
-- В `templates/components/modifiers-component.hbs` добавлены варианты `ATTACK.*` в список модификаторов.
-- В `src/system/core/hooks.js` добавлен контекст атаки (`damageType`, `attackCategory`, `attackAmmo`) и расчет итогового урона с модификаторами цели (`+`, `-`, `*`, `/`).
-- В `src/actor/actor-sheet.js` и `src/system/core/hooks.js` передаются дополнительные идентификаторы в `rollArmor(...)`, чтобы условные модификаторы (например против `stab`/`arrows`) применялись к armor-роллу.
+- Extended roll modifiers for damage and armor:
+- Added `ATTACK.*` options in `templates/components/modifiers-component.hbs`.
+- Added attack context (`damageType`, `attackCategory`, `attackAmmo`) and final damage computation with target modifiers (`+`, `-`, `*`, `/`) in `src/system/core/hooks.js`.
+- Passed additional identifiers into `rollArmor(...)` from `src/actor/actor-sheet.js` and `src/system/core/hooks.js` so conditional modifiers (for example against `stab`/`arrows`) affect armor rolls.
