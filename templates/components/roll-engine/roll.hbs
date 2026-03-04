@@ -85,6 +85,14 @@
 					{{localize "ROLL.APPLY_DAMAGE"}}
 				</button>
 			{{/if}}
+			{{#if (or (eq roll.options.gear.damageType "wits") (eq roll.options.gear.damageType "empathy") (eq roll.options.gear.damageType "fear") (eq roll.options.gear.damageType "other") (eq roll.options.gear.damageType "non-typical"))}}
+			{{#unless roll.options.resistUsed}}
+				<button class="fbl-button attack-action" data-action="defense-resist">
+					{{localize "ROLL.DEFENSE_RESIST"}}
+				</button>
+			{{/unless}}
+			{{/if}}
+			{{#unless (or (eq roll.options.gear.damageType "wits") (eq roll.options.gear.damageType "empathy") (eq roll.options.gear.damageType "fear"))}}
 			{{#unless roll.options.defenseUsed}}
 				<button class="fbl-button attack-action" data-action="defense-dodge">
 					{{localize "ROLL.DEFENSE_DODGE"}}
@@ -97,6 +105,7 @@
 				<button class="fbl-button attack-action" data-action="defense-armor">
 					{{localize "ROLL.DEFENSE_ARMOR"}}
 				</button>
+			{{/unless}}
 			{{/unless}}
 		{{/if}}
 	</div>
